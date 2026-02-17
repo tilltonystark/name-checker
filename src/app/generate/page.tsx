@@ -40,6 +40,7 @@ function GenerateContent() {
         },
         enabled: !!industry && !!description,
         staleTime: 5 * 60 * 1000,
+        retry: false, // We handle retries ourselves inside the API
     });
 
     if (!industry || !description) {

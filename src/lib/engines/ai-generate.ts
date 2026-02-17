@@ -1,12 +1,11 @@
-import OpenAI from "openai";
-import type { GeneratedName, OverallRiskLevel, StrengthLevel } from "@/types";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import type { GeneratedName, OverallRiskLevel, StrengthLevel, DomainResults } from "@/types";
 import { checkDomains } from "./domain";
-import { calculateRisk } from "./risk-scoring";
 import { scoreBrandability } from "./brandability";
 
 /**
  * Module 8: AI Name Generation Engine
- * Uses OpenAI to generate company names, then filters and ranks them.
+ * Uses Google Gemini to generate company names, then filters and ranks them.
  */
 export async function generateNames(
     industry: string,
@@ -14,7 +13,7 @@ export async function generateNames(
     keywords: string[] = [],
     region?: string
 ): Promise<GeneratedName[]> {
-    const rawNames = process.env.OPENAI_API_KEY
+    const rawNames = process.env.GEMINI_API_KEY
         ? await fetchAINames(industry, description, keywords, region)
         : simulateNames(industry, keywords);
 
@@ -73,16 +72,21 @@ export async function generateNames(
     return [...lowRisk, ...moderate, ...creative];
 }
 
+/** Helper: wait for ms */
+function delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function fetchAINames(
     industry: string,
     description: string,
     keywords: string[],
     region?: string
 ): Promise<string[]> {
-    try {
-        const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-        const prompt = `Generate 15 unique, creative company names for a startup.
+    const prompt = `Generate 15 unique, creative company names for a startup.
 
 Industry: ${industry}
 Description: ${description}
@@ -98,21 +102,41 @@ Requirements:
 
 Return ONLY the names, one per line, no numbering or explanations.`;
 
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [{ role: "user", content: prompt }],
-            temperature: 0.9,
-            max_tokens: 300,
-        });
+    // Retry up to 3 times with exponential backoff for rate limits
+    const MAX_RETRIES = 3;
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+            console.log(`[Gemini] Attempt ${attempt + 1}/${MAX_RETRIES}...`);
+            const result = await model.generateContent(prompt);
+            const text = result.response.text();
+            console.log(`[Gemini] Success! Generated text:`, text.slice(0, 200));
 
-        const text = completion.choices[0]?.message?.content || "";
-        return text
-            .split("\n")
-            .map((line) => line.trim())
-            .filter((line) => line.length > 0 && /^[a-zA-Z]+$/.test(line));
-    } catch {
-        return simulateNames(industry, keywords);
+            const names = text
+                .split("\n")
+                .map((line) => line.trim())
+                .filter((line) => line.length > 0 && /^[a-zA-Z]+$/.test(line));
+
+            if (names.length > 0) return names;
+            console.warn("[Gemini] Got response but no valid names parsed, retrying...");
+        } catch (e: unknown) {
+            const errMsg = e instanceof Error ? e.message : String(e);
+            console.error(`[Gemini] Attempt ${attempt + 1} failed:`, errMsg);
+
+            // If it's a rate limit error and we have retries left, wait and retry
+            if (errMsg.includes("429") && attempt < MAX_RETRIES - 1) {
+                const waitTime = (attempt + 1) * 15000; // 15s, 30s, 45s
+                console.log(`[Gemini] Rate limited. Waiting ${waitTime / 1000}s before retry...`);
+                await delay(waitTime);
+                continue;
+            }
+
+            // For non-429 errors or exhausted retries, fall back
+            console.error("[Gemini] All retries exhausted or non-retryable error. Using simulation fallback.");
+            return simulateNames(industry, keywords);
+        }
     }
+
+    return simulateNames(industry, keywords);
 }
 
 function simulateNames(industry: string, keywords: string[]): string[] {
@@ -122,23 +146,26 @@ function simulateNames(industry: string, keywords: string[]): string[] {
 
     const names: string[] = [];
 
+    // Use a seed from industry + timestamp to vary results
+    const seed = industry.length + Date.now();
+
     // Generate coined names
     for (let i = 0; i < 5; i++) {
-        const prefix = prefixes[i % prefixes.length];
-        const suffix = suffixes[(i + 3) % suffixes.length];
+        const prefix = prefixes[(i + (seed % prefixes.length)) % prefixes.length];
+        const suffix = suffixes[(i + (seed % suffixes.length) + 3) % suffixes.length];
         names.push(prefix + suffix);
     }
 
     // Generate from bases
     for (let i = 0; i < 5; i++) {
-        const base = bases[i % bases.length];
+        const base = bases[(i + (seed % bases.length)) % bases.length];
         names.push(base.charAt(0).toUpperCase() + base.slice(1));
     }
 
     // Industry-inspired
     const industryWord = industry.toLowerCase().replace(/[^a-z]/g, "").slice(0, 4);
     for (let i = 0; i < 5; i++) {
-        const suffix = suffixes[i % suffixes.length];
+        const suffix = suffixes[(i + (seed % suffixes.length)) % suffixes.length];
         const coined = industryWord + suffix;
         if (coined.length >= 4 && coined.length <= 12) {
             names.push(coined.charAt(0).toUpperCase() + coined.slice(1));
@@ -148,11 +175,11 @@ function simulateNames(industry: string, keywords: string[]): string[] {
     return [...new Set(names)].slice(0, 15);
 }
 
-function quickDomainStrength(domains: { com: string; io: string; co: string }): StrengthLevel {
-    const available = [domains.com, domains.io, domains.co].filter(
+function quickDomainStrength(domains: DomainResults): StrengthLevel {
+    const available = Object.values(domains).filter(
         (d) => d === "available"
     ).length;
-    if (domains.com === "available" && available >= 2) return "strong";
-    if (available >= 1) return "moderate";
+    if (domains.com === "available" && available >= 4) return "strong";
+    if (available >= 2) return "moderate";
     return "weak";
 }

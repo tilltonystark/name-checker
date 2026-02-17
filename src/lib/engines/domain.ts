@@ -7,8 +7,14 @@ const resolveDns = promisify(dns.resolve);
 
 /**
  * Module 2: Domain Intelligence Engine
- * Checks domain availability for .com, .io, .co using DNS resolution.
+ * Checks domain availability for top 10 extensions using DNS resolution.
  */
+
+export const DOMAIN_EXTENSIONS = [
+    "com", "io", "co", "ai", "dev",
+    "app", "net", "org", "design", "tech",
+] as const;
+
 export async function checkDomains(name: string): Promise<DomainResults> {
     const normalized = name.toLowerCase().replace(/[^a-z0-9]/g, "");
     const cacheKey = `domain:${normalized}`;
@@ -17,11 +23,10 @@ export async function checkDomains(name: string): Promise<DomainResults> {
     const cached = await cache.get<DomainResults>(cacheKey);
     if (cached) return cached;
 
-    const extensions = ["com", "io", "co"] as const;
     const results: Record<string, DomainStatus> = {};
 
     await Promise.all(
-        extensions.map(async (ext) => {
+        DOMAIN_EXTENSIONS.map(async (ext) => {
             const domain = `${normalized}.${ext}`;
             try {
                 await resolveDns(domain);
@@ -41,11 +46,10 @@ export async function checkDomains(name: string): Promise<DomainResults> {
         })
     );
 
-    const domainResults: DomainResults = {
-        com: results.com || "error",
-        io: results.io || "error",
-        co: results.co || "error",
-    };
+    const domainResults: DomainResults = {};
+    for (const ext of DOMAIN_EXTENSIONS) {
+        domainResults[ext] = results[ext] || "error";
+    }
 
     await cache.set(cacheKey, domainResults, TTL.DOMAIN);
     return domainResults;

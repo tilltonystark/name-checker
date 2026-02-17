@@ -10,7 +10,7 @@ interface RateLimitEntry {
 
 const store = new Map<string, RateLimitEntry>();
 
-const LIMIT = 10;
+const LIMIT = process.env.NODE_ENV === "development" ? 1000 : 10;
 const WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export function checkRateLimit(ip: string): {

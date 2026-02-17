@@ -1,4 +1,4 @@
-import type { NameVariation, OverallRiskLevel, StrengthLevel } from "@/types";
+import type { NameVariation, OverallRiskLevel, StrengthLevel, DomainResults } from "@/types";
 import { checkDomains } from "./domain";
 import { calculateRisk } from "./risk-scoring";
 import { scoreBrandability } from "./brandability";
@@ -78,11 +78,12 @@ function createVariants(name: string): string[] {
     return [...new Set(variants)].slice(0, 12);
 }
 
-function assessQuickDomainStrength(domains: { com: string; io: string; co: string }): StrengthLevel {
-    const available = [domains.com, domains.io, domains.co].filter(
+function assessQuickDomainStrength(domains: DomainResults): StrengthLevel {
+    const available = Object.values(domains).filter(
         (d) => d === "available"
     ).length;
-    if (domains.com === "available" && available >= 2) return "strong";
-    if (available >= 1) return "moderate";
+    if (domains.com === "available" && available >= 4) return "strong";
+    if (available >= 2) return "moderate";
     return "weak";
 }
+

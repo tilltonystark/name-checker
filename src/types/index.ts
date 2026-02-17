@@ -8,11 +8,7 @@ export interface NormalizedInput {
 // ─── Domain Intelligence ─────────────────────────────────────────────
 export type DomainStatus = "available" | "taken" | "premium" | "error";
 
-export interface DomainResults {
-    com: DomainStatus;
-    io: DomainStatus;
-    co: DomainStatus;
-}
+export type DomainResults = Record<string, DomainStatus>;
 
 // ─── Web Presence ────────────────────────────────────────────────────
 export type WebRiskLevel = "low" | "medium" | "high";

@@ -273,28 +273,19 @@ function ResultsContent() {
                             <div
                                 style={{
                                     display: "grid",
-                                    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                                    gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
                                     gap: "10px",
                                 }}
                             >
-                                <DomainCard
-                                    extension="com"
-                                    status={data.domains.com}
-                                    name={data.input.normalized}
-                                    delay={0.1}
-                                />
-                                <DomainCard
-                                    extension="io"
-                                    status={data.domains.io}
-                                    name={data.input.normalized}
-                                    delay={0.2}
-                                />
-                                <DomainCard
-                                    extension="co"
-                                    status={data.domains.co}
-                                    name={data.input.normalized}
-                                    delay={0.3}
-                                />
+                                {Object.entries(data.domains).map(([ext, status], i) => (
+                                    <DomainCard
+                                        key={ext}
+                                        extension={ext}
+                                        status={status}
+                                        name={data.input.normalized}
+                                        delay={i * 0.05}
+                                    />
+                                ))}
                             </div>
                         </div>
 

@@ -54,12 +54,12 @@ export function calculateRisk(
 }
 
 function assessDomainStrength(domains: DomainResults): StrengthLevel {
-    const available = [domains.com, domains.io, domains.co].filter(
+    const available = Object.values(domains).filter(
         (d) => d === "available"
     ).length;
 
-    if (domains.com === "available" && available >= 2) return "strong";
-    if (available >= 1) return "moderate";
+    if (domains.com === "available" && available >= 4) return "strong";
+    if (available >= 2) return "moderate";
     return "weak";
 }
 
