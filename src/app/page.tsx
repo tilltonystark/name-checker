@@ -1,64 +1,379 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { Header } from "@/components/Header";
+import { LegalDisclaimer } from "@/components/LegalDisclaimer";
+
+type Mode = "check" | "generate";
+
+const regions = [
+  { value: "", label: "All Regions" },
+  { value: "us", label: "United States" },
+  { value: "gb", label: "United Kingdom" },
+  { value: "in", label: "India" },
+  { value: "de", label: "Germany" },
+  { value: "ca", label: "Canada" },
+  { value: "au", label: "Australia" },
+];
+
+export default function HomePage() {
+  const router = useRouter();
+  const [mode, setMode] = useState<Mode>("check");
+  const [name, setName] = useState("");
+  const [region, setRegion] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [description, setDescription] = useState("");
+  const [keywords, setKeywords] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleCheck = () => {
+    if (!name.trim()) return;
+    const params = new URLSearchParams({ name: name.trim() });
+    if (region) params.set("region", region);
+    router.push(`/results?${params.toString()}`);
+  };
+
+  const handleGenerate = () => {
+    if (!industry.trim() || !description.trim()) return;
+    const params = new URLSearchParams({
+      industry: industry.trim(),
+      description: description.trim(),
+    });
+    if (keywords.trim()) params.set("keywords", keywords.trim());
+    if (region) params.set("region", region);
+    router.push(`/generate?${params.toString()}`);
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div style={{ minHeight: "100vh", background: "var(--bg-primary)" }}>
+      <Header />
+
+      <main
+        style={{
+          maxWidth: "720px",
+          margin: "0 auto",
+          padding: "60px 24px 80px",
+        }}
+      >
+        {/* Hero */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          style={{ textAlign: "center", marginBottom: "48px" }}
+        >
+          <h1
+            style={{
+              fontSize: "clamp(32px, 5vw, 48px)",
+              fontWeight: 700,
+              lineHeight: 1.15,
+              margin: "0 0 16px",
+              color: "var(--text-primary)",
+              letterSpacing: "-0.03em",
+            }}
+          >
+            Is your company name
+            <br />
+            safe to use?
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p
+            style={{
+              fontSize: "17px",
+              color: "var(--text-secondary)",
+              lineHeight: 1.6,
+              maxWidth: "520px",
+              margin: "0 auto",
+            }}
+          >
+            Multi-signal conflict detection, domain intelligence, and brandability
+            analysis — all in under 5 seconds.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        </motion.div>
+
+        {/* Mode Tabs */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: "4px",
+            marginBottom: "28px",
+            padding: "4px",
+            background: "var(--bg-secondary)",
+            borderRadius: "var(--radius-md)",
+            width: "fit-content",
+            margin: "0 auto 28px",
+          }}
+        >
+          <button
+            className={`tab ${mode === "check" ? "active" : ""}`}
+            onClick={() => setMode("check")}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            🔍 Check Name
+          </button>
+          <button
+            className={`tab ${mode === "generate" ? "active" : ""}`}
+            onClick={() => setMode("generate")}
           >
-            Documentation
-          </a>
-        </div>
+            ✨ Generate Names
+          </button>
+        </motion.div>
+
+        {/* Form */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="card"
+          style={{ padding: "32px" }}
+        >
+          <AnimatePresence mode="wait">
+            {mode === "check" ? (
+              <motion.div
+                key="check"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "14px",
+                    fontWeight: 500,
+                    color: "var(--text-secondary)",
+                    marginBottom: "8px",
+                  }}
+                >
+                  Company Name
+                </label>
+                <input
+                  id="name-input"
+                  className="input-field"
+                  type="text"
+                  placeholder="e.g. Bright Labs"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleCheck()}
+                  autoFocus
+                />
+
+                <div style={{ marginTop: "16px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "14px",
+                      fontWeight: 500,
+                      color: "var(--text-secondary)",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Region{" "}
+                    <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>
+                      (optional)
+                    </span>
+                  </label>
+                  <select
+                    id="region-select"
+                    className="input-field"
+                    value={region}
+                    onChange={(e) => setRegion(e.target.value)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    {regions.map((r) => (
+                      <option key={r.value} value={r.value}>
+                        {r.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  id="analyze-button"
+                  className="btn-primary"
+                  onClick={handleCheck}
+                  disabled={!name.trim()}
+                  style={{ width: "100%", marginTop: "24px" }}
+                >
+                  Analyze Name →
+                </button>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="generate"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "14px",
+                    fontWeight: 500,
+                    color: "var(--text-secondary)",
+                    marginBottom: "8px",
+                  }}
+                >
+                  Industry
+                </label>
+                <input
+                  id="industry-input"
+                  className="input-field"
+                  type="text"
+                  placeholder="e.g. Artificial Intelligence"
+                  value={industry}
+                  onChange={(e) => setIndustry(e.target.value)}
+                />
+
+                <div style={{ marginTop: "16px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "14px",
+                      fontWeight: 500,
+                      color: "var(--text-secondary)",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Description
+                  </label>
+                  <textarea
+                    id="description-input"
+                    className="input-field"
+                    placeholder="Describe your startup in 1-2 sentences..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={3}
+                    style={{ resize: "vertical" }}
+                  />
+                </div>
+
+                <div style={{ marginTop: "16px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "14px",
+                      fontWeight: 500,
+                      color: "var(--text-secondary)",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Keywords{" "}
+                    <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>
+                      (optional, comma-separated)
+                    </span>
+                  </label>
+                  <input
+                    id="keywords-input"
+                    className="input-field"
+                    type="text"
+                    placeholder="e.g. writing, content, creative"
+                    value={keywords}
+                    onChange={(e) => setKeywords(e.target.value)}
+                  />
+                </div>
+
+                <div style={{ marginTop: "16px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "14px",
+                      fontWeight: 500,
+                      color: "var(--text-secondary)",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Region{" "}
+                    <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>
+                      (optional)
+                    </span>
+                  </label>
+                  <select
+                    id="generate-region-select"
+                    className="input-field"
+                    value={region}
+                    onChange={(e) => setRegion(e.target.value)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    {regions.map((r) => (
+                      <option key={r.value} value={r.value}>
+                        {r.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  id="generate-button"
+                  className="btn-primary"
+                  onClick={handleGenerate}
+                  disabled={!industry.trim() || !description.trim()}
+                  style={{ width: "100%", marginTop: "24px" }}
+                >
+                  ✨ Generate Names
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        <LegalDisclaimer />
+
+        {/* Features */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: "16px",
+            marginTop: "48px",
+          }}
+        >
+          {[
+            { icon: "🌐", title: "Domain Check", desc: ".com, .io, .co" },
+            { icon: "🏢", title: "Registry Scan", desc: "Company databases" },
+            { icon: "🔎", title: "Web Presence", desc: "Search analysis" },
+            { icon: "🎨", title: "Brandability", desc: "Name quality score" },
+          ].map((f, i) => (
+            <div
+              key={f.title}
+              className="card"
+              style={{
+                padding: "20px",
+                textAlign: "center",
+              }}
+            >
+              <div style={{ fontSize: "24px", marginBottom: "8px" }}>
+                {f.icon}
+              </div>
+              <div
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  color: "var(--text-primary)",
+                  marginBottom: "4px",
+                }}
+              >
+                {f.title}
+              </div>
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: "var(--text-muted)",
+                }}
+              >
+                {f.desc}
+              </div>
+            </div>
+          ))}
+        </motion.div>
       </main>
     </div>
   );
